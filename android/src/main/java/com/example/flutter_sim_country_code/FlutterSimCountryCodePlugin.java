@@ -11,59 +11,42 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 
-/** FlutterSimCountryCodePlugin */
 public class FlutterSimCountryCodePlugin implements FlutterPlugin, MethodCallHandler {
 
-  private static final String CHANNEL_NAME = "flutter_sim_country_code";
+    private static final String CHANNEL_NAME = "flutter_sim_country_code";
+    private MethodChannel channel;
+    private Context context;
 
-  private MethodChannel mChannel;
-  private Context mContext;
-
-  /** Plugin registration. */
-  public static void registerWith(Registrar registrar) {
-    final FlutterSimCountryCodePlugin plugin = new FlutterSimCountryCodePlugin();
-    plugin.initInstance(registrar.messenger(), registrar.context());
-  }
-
-  private void initInstance(BinaryMessenger messenger, Context context) {
-    mChannel = new MethodChannel(messenger, CHANNEL_NAME);
-    mChannel.setMethodCallHandler(this);
-    mContext = context;
-  }
-
-  @Override
-  public void onMethodCall(MethodCall call, @NonNull Result result) {
-
-    if (call.method.equals("getSimCountryCode")) {
-      getSimCountryCode(result);
-    } else {
-      result.notImplemented();
+    @Override
+    public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding binding) {
+        BinaryMessenger messenger = binding.getBinaryMessenger();
+        context = binding.getApplicationContext();
+        channel = new MethodChannel(messenger, CHANNEL_NAME);
+        channel.setMethodCallHandler(this);
     }
-  }
 
-  private void getSimCountryCode(Result result) {
-     TelephonyManager manager = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-     if (manager != null) {
-       String countryId = manager.getSimCountryIso();
-       if (countryId != null) {
-         result.success(countryId.toUpperCase());
-         return;
-       }
-     }
-     result.error("SIM_COUNTRY_CODE_ERROR", null, null);
-  }
+    @Override
+    public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
+        if ("getSimCountryCode".equals(call.method)) {
+            TelephonyManager manager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            if (manager != null) {
+                String countryId = manager.getSimCountryIso();
+                if (countryId != null) {
+                    result.success(countryId.toUpperCase());
+                    return;
+                }
+            }
+            result.error("SIM_COUNTRY_CODE_ERROR", null, null);
+        } else {
+            result.notImplemented();
+        }
+    }
 
-  @Override
-  public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
-    initInstance(binding.getBinaryMessenger(), binding.getApplicationContext());
-  }
-
-  @Override
-  public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-    mChannel.setMethodCallHandler(null);
-    mChannel = null;
-    mContext = null;
-  }
+    @Override
+    public void onDetachedFromEngine(@NonNull FlutterPlugin.FlutterPluginBinding binding) {
+        channel.setMethodCallHandler(null);
+        channel = null;
+        context = null;
+    }
 }
